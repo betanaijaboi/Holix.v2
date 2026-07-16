@@ -126,22 +126,63 @@ body {
 }
 .library-btn:hover { background: rgba(232,24,90,.2); border-color: rgba(232,24,90,.5); }
 .library-btn:active { transform: scale(.97); }
-
-/* User chip */
-.user-chip {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--gray-lt);
-  font-size: 13px;
+.library-btn-icon {
+  padding: 0;
+  width: 38px; height: 38px;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
+
+/* User avatar + tap-to-reveal name bubble */
+.user-chip-wrap { position: relative; }
 .user-avatar {
   width: 32px; height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--pink), #8b18e8);
+  border: none;
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 700; color: #fff;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: transform .15s;
+}
+.user-avatar:hover { transform: scale(1.06); }
+.user-avatar:active { transform: scale(.96); }
+
+.user-name-bubble {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 9px 16px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity .18s, transform .18s, visibility .18s;
+  z-index: 20;
+}
+.user-name-bubble::before {
+  content: '';
+  position: absolute;
+  top: -6px; right: 12px;
+  width: 12px; height: 12px;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  transform: rotate(45deg);
+}
+.user-name-bubble.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 
 /* ── HERO ────────────────────────────────────────────────── */

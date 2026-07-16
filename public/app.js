@@ -100,21 +100,21 @@ function renderUserChip() {
   const initial = S.user.name.charAt(0).toUpperCase();
   const hr = $('headerRight');
   hr.innerHTML = `
-    <div class="user-chip">
-      <div class="user-avatar">${initial}</div>
-      <span>Hey, ${esc(S.user.name.split(' ')[0])}!</span>
-    </div>
-    <button id="libraryBtn" class="library-btn" title="Click 3× for admin access">
+    <button id="libraryBtn" class="library-btn library-btn-icon" title="Click 3× for admin access" aria-label="Library">
       <svg class="lib-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <rect x="0" y="0" width="6.5" height="6.5" rx="1.5"/>
         <rect x="9.5" y="0" width="6.5" height="6.5" rx="1.5"/>
         <rect x="0" y="9.5" width="6.5" height="6.5" rx="1.5"/>
         <rect x="9.5" y="9.5" width="6.5" height="6.5" rx="1.5"/>
       </svg>
-      Library
     </button>
+    <div class="user-chip-wrap">
+      <button id="userAvatarBtn" class="user-avatar" aria-label="Show your name">${initial}</button>
+      <div id="userNameBubble" class="user-name-bubble">${esc(S.user.name)}</div>
+    </div>
   `;
   setupLibraryBtn();
+  setupUserNameBubble();
 }
 
 /* ── FAVOURITES TOGGLE ──────────────────────────────────── */
@@ -549,6 +549,20 @@ async function postComment() {
     toast('Comment posted!');
   } catch (e) { toast(e.message || 'Failed to post'); }
   finally { btn.disabled = false; btn.textContent = 'Post'; }
+}
+
+function setupUserNameBubble() {
+  const btn = $('userAvatarBtn');
+  const bubble = $('userNameBubble');
+  if (!btn || !bubble) return;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    bubble.classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    if (!bubble.classList.contains('open')) return;
+    if (!bubble.contains(e.target) && e.target !== btn) bubble.classList.remove('open');
+  });
 }
 
 /* ── ADMIN ───────────────────────────────────────────────── */
