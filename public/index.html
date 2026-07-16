@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HOLIX MAGAZINE — Digital Library</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ░░ TOAST ░░ -->
+  <div id="toast" class="toast"></div>
+
+  <!-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+       MODAL 1 — USER REGISTRATION
+  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ -->
+  <div id="registrationModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-overlay"></div>
+    <div class="modal-box reg-box">
+      <div class="modal-brand">
+        <span class="brand-holix">HOLIX</span><span class="brand-magazine">MAGAZINE</span>
+      </div>
+      <h2 class="modal-heading">Welcome to the Library</h2>
+      <p class="modal-sub">Enter your name to step inside. We'll remember you every time you return.</p>
+      <input id="userName" class="modal-input" type="text" placeholder="Your name…" maxlength="60" autocomplete="off">
+      <button id="registerSubmitBtn" class="btn-primary">Enter Library</button>
+    </div>
+  </div>
+
+  <!-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+       MODAL 2 — ADMIN LOGIN
+  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ -->
+  <div id="adminLoginModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-overlay" onclick="closeModal('adminLoginModal')"></div>
+    <div class="modal-box admin-login-box">
+      <button class="modal-close-btn" onclick="closeModal('adminLoginModal')" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="admin-lock">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h2 class="modal-heading">Admin Access</h2>
+      <p class="modal-sub">Enter the admin password to manage the library.</p>
+      <input id="adminPassword" class="modal-input" type="password" placeholder="Password…" autocomplete="off">
+      <button id="adminLoginBtn" class="btn-primary">Unlock</button>
+      <p id="adminError" class="error-text"></p>
+    </div>
+  </div>
+
+  <!-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+       MODAL 3 — ADMIN PANEL
+  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ -->
+  <div id="adminPanelModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-overlay" onclick="closeModal('adminPanelModal')"></div>
+    <div class="modal-box admin-panel-box">
+      <button class="modal-close-btn" onclick="closeModal('adminPanelModal')" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+
+      <div class="admin-panel-header">
+        <div>
+          <h2 class="admin-panel-title">Admin Panel</h2>
+          <p class="admin-panel-sub">Manage your library content</p>
+        </div>
+        <div class="admin-badge">ADMIN</div>
+      </div>
+
+      <!-- Stats -->
+      <div id="statsGrid" class="stats-grid"></div>
+
+      <!-- Upload Form -->
+      <div class="upload-section">
+        <h3 class="section-title">Upload New Magazine</h3>
+        <form id="uploadForm" autocomplete="off">
+          <div class="upload-form-grid">
+            <input id="magTitle" class="admin-input" type="text" placeholder="Magazine Title *" required>
+            <input id="magIssue" class="admin-input" type="text" placeholder="Issue / Volume (e.g. Vol. 3)">
+            <textarea id="magDesc" class="admin-input admin-textarea full-col" placeholder="Short description (optional)…"></textarea>
+          </div>
+          <div class="file-upload-row">
+            <label class="file-drop-zone" id="coverDropZone">
+              <input type="file" id="coverInput" accept="image/*" hidden>
+              <div class="drop-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9l4-4 4 4 4-4 4 4"/><path d="M3 15h18"/></svg>
+              </div>
+              <span class="drop-label">Cover Image</span>
+              <span id="coverFileName" class="drop-filename">No file chosen</span>
+            </label>
+            <label class="file-drop-zone" id="pdfDropZone">
+              <input type="file" id="pdfInput" accept=".pdf,application/pdf" hidden>
+              <div class="drop-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              </div>
+              <span class="drop-label">PDF File</span>
+              <span id="pdfFileName" class="drop-filename">No file chosen</span>
+            </label>
+          </div>
+          <div id="uploadProgress" class="upload-progress" hidden>
+            <div id="uploadProgressBar" class="upload-progress-bar"></div>
+          </div>
+          <button id="uploadSubmitBtn" type="submit" class="btn-upload">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload Magazine
+          </button>
+        </form>
+      </div>
+
+      <!-- Magazine list -->
+      <div id="adminMagazineList" class="admin-mag-list"></div>
+    </div>
+  </div>
+
+  <!-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+       PDF READER — HUD LAYOUT
+  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ -->
+  <div id="pdfModal" class="pdf-modal">
+
+    <!-- ░ LEFT CHROME ░ -->
+    <div class="pdf-left-chrome">
+      <div class="pdf-back-row">
+        <button id="closePdfBtn" class="pdf-back-btn" aria-label="Back to archive">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="pdf-back-text">
+          <span class="pdf-back-to">BACK TO</span>
+          <span class="pdf-back-archive">Archive</span>
+        </div>
+      </div>
+
+      <div class="pdf-left-meta">
+        <div class="pdf-left-issue-row">
+          <div class="pdf-left-stripe"></div>
+          <span id="pdfLeftStatus" class="pdf-left-status"></span>
+        </div>
+        <div id="pdfLeftSubtitle" class="pdf-left-subtitle"></div>
+      </div>
+    </div>
+
+    <!-- ░ CENTER — PDF ░ -->
+    <div class="pdf-center-col">
+      <!-- Credits button floats top-center -->
+      <div class="pdf-center-top">
+        <button id="pdfCreditsBtn" class="pdf-credits-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v2h20v-2c0-3.33-6.67-5-10-5z"/></svg>
+          CREDITS
+        </button>
+      </div>
+      <div class="pdf-frame-wrap" id="pdfFrameWrap">
+        <iframe id="pdfFrame" class="pdf-frame" title="Magazine PDF"></iframe>
+      </div>
+    </div>
+
+    <!-- ░ RIGHT CHROME ░ -->
+    <div class="pdf-right-chrome">
+
+      <!-- STATUS / TITLE info card -->
+      <div class="pdf-meta-card">
+        <div class="pdf-meta-cell">
+          <div class="pdf-meta-lbl">STATUS</div>
+          <div id="pdfMetaStatus" class="pdf-meta-val"></div>
+        </div>
+        <div class="pdf-meta-sep"></div>
+        <div class="pdf-meta-cell">
+          <div class="pdf-meta-lbl">TITLE</div>
+          <div id="pdfMetaTitle" class="pdf-meta-val"></div>
+        </div>
+      </div>
+
+      <!-- Zoom controls -->
+      <div class="pdf-zoom-row">
+        <button id="pdfZoomOut" class="pdf-zoom-btn" aria-label="Zoom out">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <span id="pdfZoomLabel" class="pdf-zoom-label">1.0x</span>
+        <button id="pdfZoomIn" class="pdf-zoom-btn" aria-label="Zoom in">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+
+      <!-- Vertical icon toolbar -->
+      <div class="pdf-icon-toolbar">
+        <button id="pdfShareBtn" class="pdf-icon-btn" aria-label="Share">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+        <div class="pdf-icon-btn-wrap">
+          <button id="pdfFavoriteBtn" class="pdf-icon-btn" aria-label="Favourite">
+            <svg id="pdfFavIcon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </button>
+          <span id="pdfFavBadge" class="pdf-icon-badge" hidden>0</span>
+        </div>
+        <button class="pdf-icon-btn" aria-label="Annotate">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
+
+      <!-- Page indicator + Chat button -->
+      <div class="pdf-bottom-right">
+        <div class="pdf-page-ind">
+          <span class="pdf-page-lbl">PAGE</span>
+          <span id="pdfPageNum" class="pdf-page-num">1</span>
+        </div>
+        <div class="pdf-chat-wrap">
+          <button id="openCommentBtn" class="pdf-chat-btn" aria-label="Comments">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </button>
+          <span id="pdfCommentBadge" class="pdf-chat-badge" hidden>0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ░ COMMENTS PANEL (slides in from right) ░ -->
+    <aside id="commentsPanel" class="comments-panel">
+      <div class="comments-top">
+        <h3 class="comments-heading">Comments</h3>
+        <button id="closeCommentsBtn" class="close-comments" aria-label="Close">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div id="commentsList" class="comments-list"></div>
+      <div class="comment-compose">
+        <textarea id="commentText" class="comment-textarea" placeholder="Share your thoughts on this issue…" rows="3"></textarea>
+        <button id="postCommentBtn" class="btn-post-comment">Post</button>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+       MAGAZINE PREVIEW
+  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ -->
+  <div id="previewModal" class="preview-modal">
+
+    <!-- Replicated header -->
+    <div class="site-header preview-hdr">
+      <a class="site-logo" href="/">
+        <span class="logo-holix">HOLIX</span><span class="logo-magazine">MAGAZINE</span>
+      </a>
+      <div class="header-right">
+        <button id="previewLibraryBtn" class="library-btn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="0"   y="0"   width="6.5" height="6.5" rx="1.5"/>
+            <rect x="9.5" y="0"   width="6.5" height="6.5" rx="1.5"/>
+            <rect x="0"   y="9.5" width="6.5" height="6.5" rx="1.5"/>
+            <rect x="9.5" y="9.5" width="6.5" height="6.5" rx="1.5"/>
+          </svg>
+          Library
+        </button>
+        <button id="closePreviewBtn" class="preview-close" aria-label="Back to library">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Two-column body -->
+    <div class="preview-body">
+
+      <!-- Left: full-height cover -->
+      <div class="preview-cover-col">
+        <img id="previewCoverImg" class="preview-cover-img" src="" alt="">
+      </div>
+
+      <!-- Right: details -->
+      <div class="preview-info-col">
+        <div id="previewIssueNum"  class="preview-issue-num"></div>
+        <div id="previewEditionLbl" class="preview-edition-lbl"></div>
+        <p   id="previewDesc"      class="preview-desc"></p>
+
+        <div class="preview-stats">
+          <div class="prev-stat">
+            <div class="prev-stat-lbl">READERS</div>
+            <div id="previewReaders" class="prev-stat-val">0</div>
+          </div>
+          <div class="prev-stat">
+            <div class="prev-stat-lbl">FAVORITES</div>
+            <div id="previewFavCount" class="prev-stat-val">0</div>
+          </div>
+        </div>
+
+        <div class="preview-actions">
+          <button id="previewReadBtn"  class="btn-prev-read">READ</button>
+          <button id="previewFavBtn"   class="btn-prev-icon" aria-label="Favourite">
+            <svg id="prevFavIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </button>
+          <button id="previewShareBtn" class="btn-prev-icon" aria-label="Share">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+       MAIN PAGE
+  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ -->
+
+  <!-- Header -->
+  <header class="site-header">
+    <a href="/" class="site-logo" aria-label="HOLIX Magazine Home">
+      <span class="logo-holix">HOLIX</span><span class="logo-magazine">MAGAZINE</span>
+    </a>
+    <div class="header-right" id="headerRight">
+      <button id="libraryBtn" class="library-btn" title="Click 3× for admin access">
+        <svg class="lib-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <rect x="0" y="0" width="6.5" height="6.5" rx="1.5"/>
+          <rect x="9.5" y="0" width="6.5" height="6.5" rx="1.5"/>
+          <rect x="0" y="9.5" width="6.5" height="6.5" rx="1.5"/>
+          <rect x="9.5" y="9.5" width="6.5" height="6.5" rx="1.5"/>
+        </svg>
+        Library
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-left">
+      <h1 class="hero-title" id="heroTitle" title="Click 3× for admin access">Library</h1>
+      <p class="hero-subtitle">CURATED HOLIX DIGITAL LIBRARY</p>
+    </div>
+    <div class="hero-right">
+      <button id="favBtn" class="btn-show-favs">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        SHOW FAVORITES
+      </button>
+      <div class="search-pill">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="searchInput" type="text" placeholder="Search by Title or Issue…" autocomplete="off" spellcheck="false">
+        <button id="clearSearch" class="clear-search" hidden aria-label="Clear search">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Magazine Grid -->
+  <main class="mag-section">
+    <div id="magazineGrid" class="mag-grid"></div>
+  </main>
+
+  <!-- Bottom Marquee Ribbon -->
+  <div class="marquee-ribbon" aria-hidden="true">
+    <div class="marquee-track">
+      <span>YURRHH WE'RE FINALLY LIVE... WELCOME TO HOLIX MAGAZINE. ALSO KEEP AN OPEN MIND. YOU'LL LOVE THE PEOPLE HERE. CAN'T WAIT FOR YOU TO MEET 'EM. APRIL 2026 LAUNCH &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+      <span>YURRHH WE'RE FINALLY LIVE... WELCOME TO HOLIX MAGAZINE. ALSO KEEP AN OPEN MIND. YOU'LL LOVE THE PEOPLE HERE. CAN'T WAIT FOR YOU TO MEET 'EM. APRIL 2026 LAUNCH &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

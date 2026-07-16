@@ -1,0 +1,16 @@
+[
+  {
+    "id": "f51038b8-1d41-4056-8e53-3fdef9bbb02d",
+    "name": "Bak-Abasi",
+    "ip": "::1",
+    "favorites": [],
+    "joinedAt": "2026-05-07T15:48:37.747Z"
+  },
+  {
+    "id": "48cba9a6-f107-4725-9e3e-aceeda52fac4",
+    "name": "Bak-Abasi",
+    "ip": "::ffff:192.168.1.51",
+    "favorites": [],
+    "joinedAt": "2026-07-14T15:55:22.660Z"
+  }
+]
