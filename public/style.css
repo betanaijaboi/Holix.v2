@@ -502,6 +502,7 @@ body {
 .admin-panel-header {
   display: flex; align-items:flex-start; justify-content:space-between;
   margin-bottom: 28px;
+  padding-right: 44px; /* reserve room so the fixed close button never overlaps the badge */
 }
 .admin-panel-title { font-size:22px; font-weight:700; color:var(--pink); }
 .admin-panel-sub { font-size:13px; color:var(--gray); margin-top:3px; }
@@ -528,6 +529,37 @@ body {
 }
 .stat-num { font-size:38px; font-weight:700; color:var(--pink); line-height:1; }
 .stat-lbl { font-size:11px; color:var(--gray); letter-spacing:1.5px; text-transform:uppercase; margin-top:6px; }
+
+.stat-card-clickable { cursor:pointer; transition: background .2s, border-color .2s, transform .15s; }
+.stat-card-clickable:hover { background: rgba(232,24,90,.1); border-color: rgba(232,24,90,.25); transform: translateY(-1px); }
+
+.btn-view-analytics {
+  width: 100%;
+  background: rgba(255,255,255,.03); border: 1px solid var(--border);
+  color: var(--white); font-size:13px; font-weight:600; letter-spacing:.3px;
+  border-radius: 10px; padding: 12px; margin-bottom: 28px;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  cursor:pointer; transition: background .2s, border-color .2s;
+}
+.btn-view-analytics:hover { background: rgba(232,24,90,.08); border-color: rgba(232,24,90,.25); color: var(--pink); }
+
+/* Members list modal */
+.members-list { display:flex; flex-direction:column; gap:8px; max-height:60vh; overflow-y:auto; }
+.member-row {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background: rgba(255,255,255,.02); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 16px;
+}
+.member-row-name { font-weight:600; color:var(--white); font-size:14px; }
+.member-row-meta { font-size:12px; color:var(--gray); margin-top:2px; }
+.member-row-stats { font-size:12px; color:var(--pink); white-space:nowrap; text-align:right; }
+.members-empty { color:var(--gray); text-align:center; padding:30px 0; }
+
+/* Analytics charts */
+.chart-block { margin-bottom: 28px; }
+.chart-container { width:100%; overflow-x:auto; }
+.chart-container svg { display:block; width:100%; height:auto; }
+.chart-empty { color:var(--gray); text-align:center; padding:30px 0; font-size:13px; }
 
 /* Upload section */
 .upload-section {

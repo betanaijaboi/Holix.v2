@@ -70,6 +70,10 @@
 
       <!-- Stats -->
       <div id="statsGrid" class="stats-grid"></div>
+      <button id="viewAnalyticsBtn" class="btn-view-analytics" type="button">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+        View Analytics
+      </button>
 
       <!-- Upload Form -->
       <div class="upload-section">
@@ -110,6 +114,51 @@
 
       <!-- Magazine list -->
       <div id="adminMagazineList" class="admin-mag-list"></div>
+    </div>
+  </div>
+
+  <!-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+       MODAL 4 — ADMIN MEMBERS LIST
+  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ -->
+  <div id="adminMembersModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-overlay" onclick="closeModal('adminMembersModal')"></div>
+    <div class="modal-box admin-panel-box">
+      <button class="modal-close-btn" onclick="closeModal('adminMembersModal')" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="admin-panel-header">
+        <div>
+          <h2 class="admin-panel-title">Members</h2>
+          <p class="admin-panel-sub">Everyone who has registered</p>
+        </div>
+      </div>
+      <div id="membersList" class="members-list"></div>
+    </div>
+  </div>
+
+  <!-- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+       MODAL 5 — ADMIN ANALYTICS
+  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ -->
+  <div id="adminAnalyticsModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-overlay" onclick="closeModal('adminAnalyticsModal')"></div>
+    <div class="modal-box admin-panel-box">
+      <button class="modal-close-btn" onclick="closeModal('adminAnalyticsModal')" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="admin-panel-header">
+        <div>
+          <h2 class="admin-panel-title">Analytics</h2>
+          <p class="admin-panel-sub">Growth over time</p>
+        </div>
+      </div>
+      <div class="chart-block">
+        <h3 class="section-title">Reads Over Time</h3>
+        <div id="readsChart" class="chart-container"></div>
+      </div>
+      <div class="chart-block">
+        <h3 class="section-title">Member Growth Over Time</h3>
+        <div id="membersChart" class="chart-container"></div>
+      </div>
     </div>
   </div>
 

@@ -440,10 +440,13 @@ async function openAdminPanel() {
     const stats = await api('/api/admin/stats');
     $('statsGrid').innerHTML = `
       <div class="stat-card"><div class="stat-num">${stats.totalMagazines}</div><div class="stat-lbl">Magazines</div></div>
-      <div class="stat-card"><div class="stat-num">${stats.totalUsers}</div><div class="stat-lbl">Members</div></div>
+      <div class="stat-card stat-card-clickable" onclick="openAdminMembers()" title="Click to see member list">
+        <div class="stat-num">${stats.totalUsers}</div><div class="stat-lbl">Members</div>
+      </div>
       <div class="stat-card"><div class="stat-num">${stats.totalComments}</div><div class="stat-lbl">Comments</div></div>
       <div class="stat-card"><div class="stat-num">${stats.totalReads}</div><div class="stat-lbl">Total Reads</div></div>
     `;
+    $('viewAnalyticsBtn').onclick = openAdminAnalytics;
     const listEl = $('adminMagazineList');
     if (!stats.magazines.length) {
       listEl.innerHTML = '<p style="color:var(--gray);text-align:center;padding:20px 0">No magazines uploaded yet.</p>';
@@ -461,6 +464,78 @@ async function openAdminPanel() {
           <button class="btn-delete" onclick="deleteMagazine('${m.id}')">Delete</button>
         </div>`).join('')}`;
   } catch { toast('Failed to load admin data'); }
+}
+
+async function openAdminMembers() {
+  openModal('adminMembersModal');
+  const listEl = $('membersList');
+  listEl.innerHTML = '<p class="members-empty">Loading…</p>';
+  try {
+    const members = await api('/api/admin/members');
+    if (!members.length) {
+      listEl.innerHTML = '<p class="members-empty">No members yet.</p>';
+      return;
+    }
+    listEl.innerHTML = members.map(m => `
+      <div class="member-row">
+        <div>
+          <div class="member-row-name">${esc(m.name)}</div>
+          <div class="member-row-meta">Joined ${timeAgo(m.joinedAt)} &nbsp;·&nbsp; ${esc(m.ip || 'unknown IP')}</div>
+        </div>
+        <div class="member-row-stats">${m.readsCount} read${m.readsCount !== 1 ? 's' : ''}<br>${m.favoritesCount} favorite${m.favoritesCount !== 1 ? 's' : ''}</div>
+      </div>`).join('');
+  } catch {
+    listEl.innerHTML = '<p class="members-empty" style="color:#ff5566">Failed to load members.</p>';
+  }
+}
+
+async function openAdminAnalytics() {
+  openModal('adminAnalyticsModal');
+  const readsEl = $('readsChart');
+  const membersEl = $('membersChart');
+  readsEl.innerHTML = '<p class="chart-empty">Loading…</p>';
+  membersEl.innerHTML = '<p class="chart-empty">Loading…</p>';
+  try {
+    const { reads, members } = await api('/api/admin/analytics');
+    readsEl.innerHTML = renderLineChart(reads, 'Reads');
+    membersEl.innerHTML = renderLineChart(members, 'Members');
+  } catch {
+    readsEl.innerHTML = '<p class="chart-empty" style="color:#ff5566">Failed to load.</p>';
+    membersEl.innerHTML = '';
+  }
+}
+
+// Hand-rolled SVG line chart — cumulative totals over time, no charting library.
+function renderLineChart(points, label) {
+  if (!points.length) return `<p class="chart-empty">No ${label.toLowerCase()} yet.</p>`;
+
+  const W = 680, H = 220, PAD = 36;
+  const maxVal = Math.max(...points.map(p => p.total), 1);
+  const n = points.length;
+  const x = i => n === 1 ? W / 2 : PAD + (i / (n - 1)) * (W - PAD * 2);
+  const y = v => H - PAD - (v / maxVal) * (H - PAD * 2);
+
+  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(p.total).toFixed(1)}`).join(' ');
+  const area = `${path} L ${x(n - 1).toFixed(1)} ${H - PAD} L ${x(0).toFixed(1)} ${H - PAD} Z`;
+
+  const dots = points.map((p, i) => `
+    <circle cx="${x(i).toFixed(1)}" cy="${y(p.total).toFixed(1)}" r="3.5" fill="#DB2777">
+      <title>${p.date}: ${p.total}</title>
+    </circle>`).join('');
+
+  const firstLabel = points[0].date;
+  const lastLabel = points[n - 1].date;
+
+  return `
+    <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+      <line x1="${PAD}" y1="${H - PAD}" x2="${W - PAD}" y2="${H - PAD}" stroke="rgba(255,255,255,.12)" stroke-width="1"/>
+      <path d="${area}" fill="rgba(219,39,119,.12)" stroke="none"/>
+      <path d="${path}" fill="none" stroke="#DB2777" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+      <text x="${PAD}" y="${H - 10}" fill="rgba(255,255,255,.4)" font-size="11">${firstLabel}</text>
+      <text x="${W - PAD}" y="${H - 10}" fill="rgba(255,255,255,.4)" font-size="11" text-anchor="end">${lastLabel}</text>
+      <text x="${PAD}" y="18" fill="rgba(255,255,255,.4)" font-size="11">${maxVal} total</text>
+    </svg>`;
 }
 
 async function handleUpload(e) {
@@ -632,6 +707,8 @@ function init() {
     if (e.key === 'Escape') {
       if ($('pdfModal').classList.contains('open'))       { closePdfViewer(); return; }
       if ($('previewModal').classList.contains('open'))   { closePreview(); return; }
+      if ($('adminAnalyticsModal').classList.contains('open')){ closeModal('adminAnalyticsModal'); return; }
+      if ($('adminMembersModal').classList.contains('open')){ closeModal('adminMembersModal'); return; }
       if ($('adminPanelModal').classList.contains('open')){ closeModal('adminPanelModal'); return; }
       if ($('adminLoginModal').classList.contains('open')){ closeModal('adminLoginModal'); return; }
     }

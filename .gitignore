@@ -1,0 +1,7 @@
+.env
+.env.*
+
+# Superseded by Supabase (Postgres + Storage) — kept locally as a backup
+# of the original migrated content, not tracked going forward.
+data/
+uploads/
