@@ -119,11 +119,32 @@ app.get('/api/magazines/:id', (req, res) => {
   const all = readJSON('data/magazines.json');
   const i = all.findIndex(m => m.id === req.params.id);
   if (i === -1) return res.status(404).json({ error: 'Not found' });
-  all[i].views = (all[i].views || 0) + 1;
-  writeJSON('data/magazines.json', all);
   const users = readJSON('data/users.json');
   const favCount = users.filter(u => Array.isArray(u.favorites) && u.favorites.includes(req.params.id)).length;
   res.json({ ...all[i], favCount });
+});
+
+// Counts a read once per member per magazine — opening a magazine you've
+// already read doesn't increment the counter again.
+app.post('/api/magazines/:id/read', (req, res) => {
+  const users = readJSON('data/users.json');
+  const user = findUser(req, users);
+  if (!user) return res.status(401).json({ error: 'Not registered' });
+
+  const magazines = readJSON('data/magazines.json');
+  const magIdx = magazines.findIndex(m => m.id === req.params.id);
+  if (magIdx === -1) return res.status(404).json({ error: 'Not found' });
+
+  const userIdx = users.findIndex(u => u.id === user.id);
+  if (!Array.isArray(users[userIdx].reads)) users[userIdx].reads = [];
+  const alreadyRead = users[userIdx].reads.includes(req.params.id);
+  if (!alreadyRead) {
+    users[userIdx].reads.push(req.params.id);
+    magazines[magIdx].views = (magazines[magIdx].views || 0) + 1;
+    writeJSON('data/users.json', users);
+    writeJSON('data/magazines.json', magazines);
+  }
+  res.json({ views: magazines[magIdx].views || 0, firstRead: !alreadyRead });
 });
 
 // ── COMMENT ROUTES ───────────────────────────────────────────
@@ -211,6 +232,7 @@ app.get('/api/admin/stats', adminOnly, (req, res) => {
     totalMagazines: magazines.length,
     totalUsers: users.length,
     totalComments: comments.length,
+    totalReads: magazines.reduce((sum, m) => sum + (m.views || 0), 0),
     magazines: magazines.map(m => ({
       ...m, commentCount: comments.filter(c => c.magazineId === m.id).length
     }))

@@ -252,6 +252,8 @@ function openMagazineFromPreview() {
   // Load PDF — #zoom=page-width fills the viewer column naturally
   $('pdfFrame').src = mag.pdfUrl + '#zoom=page-width';
 
+  markAsRead(mag.id);
+
   // Fav button
   const isFav = S.user?.favorites?.includes(mag.id) || false;
   setPdfFavBtn(isFav);
@@ -270,6 +272,15 @@ function openMagazineFromPreview() {
 
   $('pdfModal').classList.add('open');
   $('commentsPanel').classList.remove('open');
+}
+
+async function markAsRead(magId) {
+  try {
+    const res = await api(`/api/magazines/${magId}/read`, { method: 'POST' });
+    if (S.currentMag?.id === magId) S.currentMag.views = res.views;
+    const idx = S.magazines.findIndex(m => m.id === magId);
+    if (idx !== -1) S.magazines[idx].views = res.views;
+  } catch { /* silent — not registered yet, or offline */ }
 }
 
 async function loadPdfCommentBadge(magId) {
@@ -431,6 +442,7 @@ async function openAdminPanel() {
       <div class="stat-card"><div class="stat-num">${stats.totalMagazines}</div><div class="stat-lbl">Magazines</div></div>
       <div class="stat-card"><div class="stat-num">${stats.totalUsers}</div><div class="stat-lbl">Members</div></div>
       <div class="stat-card"><div class="stat-num">${stats.totalComments}</div><div class="stat-lbl">Comments</div></div>
+      <div class="stat-card"><div class="stat-num">${stats.totalReads}</div><div class="stat-lbl">Total Reads</div></div>
     `;
     const listEl = $('adminMagazineList');
     if (!stats.magazines.length) {
@@ -444,7 +456,7 @@ async function openAdminPanel() {
           <img class="admin-mag-cover" src="${m.coverUrl}" alt="${esc(m.title)}" onerror="this.style.opacity='.3'">
           <div class="admin-mag-info">
             <div class="admin-mag-title">${esc(m.title)}</div>
-            <div class="admin-mag-meta">${m.issue || 'No issue'} &nbsp;·&nbsp; ${m.views || 0} views &nbsp;·&nbsp; ${m.commentCount} comments</div>
+            <div class="admin-mag-meta">${m.issue || 'No issue'} &nbsp;·&nbsp; ${m.views || 0} reads &nbsp;·&nbsp; ${m.commentCount} comments</div>
           </div>
           <button class="btn-delete" onclick="deleteMagazine('${m.id}')">Delete</button>
         </div>`).join('')}`;
