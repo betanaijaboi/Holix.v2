@@ -74,6 +74,19 @@ const toMagazine = (row, extra = {}) => ({
   favCount: extra.favCount ?? 0
 });
 
+// Orders by the number found in the issue label ("issue 03" -> 3), not
+// upload time — so deleting and re-uploading issue 3 keeps it before issue
+// 4 instead of jumping to the front/back based on when that happened.
+// Labels with no number sort after all numbered ones.
+const issueSortKey = (issueLabel) => {
+  const match = (issueLabel || '').match(/\d+/);
+  return match ? parseInt(match[0], 10) : Infinity;
+};
+const sortByIssue = (list) => [...list].sort((a, b) => {
+  const diff = issueSortKey(a.issue) - issueSortKey(b.issue);
+  return diff !== 0 ? diff : a.uploadedAt.localeCompare(b.uploadedAt);
+});
+
 const storagePathFromUrl = (url, bucket) => {
   const marker = `/storage/v1/object/public/${bucket}/`;
   const idx = (url || '').indexOf(marker);
@@ -158,10 +171,10 @@ app.get('/api/magazines', async (req, res) => {
   const statsById = {};
   (stats || []).forEach(s => { statsById[s.issue_id] = s; });
 
-  let list = rows.map(r => toMagazine(r, {
+  let list = sortByIssue(rows.map(r => toMagazine(r, {
     views: statsById[r.id]?.read_count || 0,
     favCount: statsById[r.id]?.fav_count || 0
-  }));
+  })));
   if (q) list = list.filter(m =>
     m.title.toLowerCase().includes(q) ||
     m.issue.toLowerCase().includes(q) ||

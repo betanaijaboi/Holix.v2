@@ -351,8 +351,8 @@ body {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   height: 42px;
-  background: #ffffff;
-  border-top: 2px solid #000000;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
   overflow: hidden;
   display: flex; align-items: center;
   z-index: 600;
@@ -365,7 +365,7 @@ body {
 .marquee-track span {
   font-size: 11px;
   letter-spacing: 2.5px;
-  color: #000000;
+  color: var(--white);
   text-transform: uppercase;
   flex-shrink: 0;
   font-weight: 600;
