@@ -123,11 +123,6 @@ async function toggleFav(magId, e) {
     // Update preview fav button if open
     if (S.currentMag?.id === magId) {
       setPreviewFavBtn(isFav);
-      const fc = $('previewFavCount');
-      if (fc) {
-        const current = parseInt(fc.textContent || '0');
-        fc.textContent = Math.max(0, current + (isFav ? 1 : -1));
-      }
       setPdfFavBtn(isFav);
       // Update fav badge in PDF HUD
       const favBadge = $('pdfFavBadge');
@@ -209,8 +204,6 @@ async function openPreview(magId) {
     $('previewIssueNum').textContent   = mag.issue || '';
     $('previewEditionLbl').textContent = mag.title || '';
     $('previewDesc').textContent       = mag.description || '';
-    $('previewReaders').textContent    = mag.views || 0;
-    $('previewFavCount').textContent   = mag.favCount || 0;
 
     const isFav = S.user?.favorites?.includes(magId) || false;
     setPreviewFavBtn(isFav);
