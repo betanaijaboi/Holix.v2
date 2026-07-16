@@ -8,8 +8,14 @@ const S = {
   query: '',
   libClicks: 0,
   libTimer: null,
-  pdfZoom: 1.0
+  pdfZoom: 1.0,
+  pdfDoc: null,
+  pdfRenderTasks: [],
+  pdfPageObserver: null,
+  pdfLazyObserver: null
 };
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 /* ── HELPERS ────────────────────────────────────────────── */
 const $ = id => document.getElementById(id);
@@ -241,10 +247,9 @@ function openMagazineFromPreview() {
   // Reset zoom state
   S.pdfZoom = 1.0;
   $('pdfZoomLabel').textContent = '100%';
+  $('pdfPageNum').textContent = '1';
 
-  // Load PDF — #zoom=page-width fills the viewer column naturally
-  $('pdfFrame').src = mag.pdfUrl + '#zoom=page-width';
-
+  loadPdf(mag.pdfUrl);
   markAsRead(mag.id);
 
   // Fav button
@@ -265,6 +270,108 @@ function openMagazineFromPreview() {
 
   $('pdfModal').classList.add('open');
   $('commentsPanel').classList.remove('open');
+}
+
+// Loads the PDF once via PDF.js, then renders it into per-page canvases.
+// Rendering itself (renderPages) is separated out so zoom changes can
+// re-render without re-fetching the document.
+async function loadPdf(url) {
+  cancelPdfRenders();
+  const container = $('pdfPagesContainer');
+  const loading = $('pdfLoading');
+  container.innerHTML = '';
+  loading.hidden = false;
+
+  try {
+    S.pdfDoc = await pdfjsLib.getDocument(url).promise;
+    await renderPages(S.pdfZoom);
+  } catch {
+    container.innerHTML = '<p class="pdf-loading" style="position:static;color:#ff5566">Failed to load this PDF.</p>';
+  } finally {
+    loading.hidden = true;
+  }
+}
+
+// Builds a correctly-sized placeholder for every page (cheap — just reads
+// dimensions, doesn't render), then lazily renders each page's canvas only
+// once it scrolls near the viewport. Rendering all pages upfront doesn't
+// scale to longer magazines on the phones this is meant to support.
+// Base scale is computed per-page so 100% zoom fits the viewer's width —
+// the old "page-width" iframe behavior, reproduced manually.
+async function renderPages(zoom) {
+  if (!S.pdfDoc) return;
+  cancelPdfRenders();
+  const container = $('pdfPagesContainer');
+  container.innerHTML = '';
+
+  const wrapWidth = $('pdfFrameWrap').clientWidth - 32; // leave a little breathing room
+  const pages = [];
+
+  for (let i = 1; i <= S.pdfDoc.numPages; i++) {
+    const page = await S.pdfDoc.getPage(i);
+    const unscaledWidth = page.getViewport({ scale: 1 }).width;
+    const baseScale = wrapWidth / unscaledWidth;
+    const viewport = page.getViewport({ scale: baseScale * zoom });
+
+    const wrap = document.createElement('div');
+    wrap.className = 'pdf-page';
+    wrap.dataset.page = i;
+    wrap.style.width  = Math.floor(viewport.width) + 'px';
+    wrap.style.height = Math.floor(viewport.height) + 'px';
+    container.appendChild(wrap);
+    pages.push({ page, viewport, wrap });
+  }
+
+  observePdfPageNumbers(pages.map(p => p.wrap));
+  observeLazyPageRendering(pages);
+  renderSinglePage(pages[0]); // render page 1 immediately — no blank flash on open
+}
+
+function renderSinglePage({ page, viewport, wrap }) {
+  if (wrap.dataset.rendered) return;
+  wrap.dataset.rendered = 'true';
+
+  const outputScale = window.devicePixelRatio || 1;
+  const canvas = document.createElement('canvas');
+  canvas.width  = Math.floor(viewport.width * outputScale);
+  canvas.height = Math.floor(viewport.height * outputScale);
+  canvas.style.width  = wrap.style.width;
+  canvas.style.height = wrap.style.height;
+  wrap.appendChild(canvas);
+
+  const ctx = canvas.getContext('2d');
+  const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
+  const task = page.render({ canvasContext: ctx, viewport, transform });
+  S.pdfRenderTasks.push(task);
+  task.promise.catch(() => {}); // cancelled tasks reject — ignore
+}
+
+// Renders a page's canvas once it scrolls within ~1200px of the viewport.
+function observeLazyPageRendering(pages) {
+  S.pdfLazyObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const match = pages.find(p => p.wrap === entry.target);
+      if (match) renderSinglePage(match);
+    });
+  }, { root: $('pdfFrameWrap'), rootMargin: '1200px 0px' });
+  pages.forEach(p => S.pdfLazyObserver.observe(p.wrap));
+}
+
+// Tracks which page is most visible while scrolling and updates the page indicator.
+function observePdfPageNumbers(wraps) {
+  S.pdfPageObserver = new IntersectionObserver((entries) => {
+    const visible = entries.filter(e => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    if (visible) $('pdfPageNum').textContent = visible.target.dataset.page;
+  }, { root: $('pdfFrameWrap'), threshold: [0.5] });
+  wraps.forEach(w => S.pdfPageObserver.observe(w));
+}
+
+function cancelPdfRenders() {
+  S.pdfRenderTasks.forEach(t => t.cancel());
+  S.pdfRenderTasks = [];
+  S.pdfLazyObserver?.disconnect();
+  S.pdfPageObserver?.disconnect();
 }
 
 async function markAsRead(magId) {
@@ -293,24 +400,78 @@ let _zoomDebounce;
 function adjustZoom(delta) {
   S.pdfZoom = Math.min(3.0, Math.max(0.25, +(S.pdfZoom + delta).toFixed(2)));
   $('pdfZoomLabel').textContent = Math.round(S.pdfZoom * 100) + '%';
-  // Debounce so rapid clicks only reload once
+  // Debounce so rapid clicks only re-render once
   clearTimeout(_zoomDebounce);
-  _zoomDebounce = setTimeout(applyZoom, 400);
-}
-
-function applyZoom() {
-  if (!S.currentMag) return;
-  const frame = $('pdfFrame');
-  const pct   = Math.round(S.pdfZoom * 100);
-  // Reload the PDF at the new zoom level via URL hash.
-  // The iframe always stays 100% × 100% — only the PDF's internal zoom changes.
-  frame.src = S.currentMag.pdfUrl + '#zoom=' + pct;
+  _zoomDebounce = setTimeout(() => renderPages(S.pdfZoom), 400);
 }
 
 function closePdfViewer() {
   $('pdfModal').classList.remove('open');
-  $('pdfFrame').src = '';
+  cancelPdfRenders();
+  $('pdfPagesContainer').innerHTML = '';
+  S.pdfDoc = null;
   $('commentsPanel').classList.remove('open');
+  if (document.fullscreenElement || document.webkitFullscreenElement) exitFullscreen();
+  $('pdfModal').classList.remove('pseudo-fullscreen');
+  updateFullscreenIcon();
+}
+
+// Explicit, user-initiated download — nothing downloads on its own.
+// Fetches as a blob rather than a plain <a download>, since a plain
+// download link silently fails to force-download cross-origin files
+// (Supabase Storage is a different origin from the app).
+async function downloadPdf() {
+  if (!S.currentMag) return;
+  const btn = $('pdfDownloadBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch(S.currentMag.pdfUrl);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = [S.currentMag.title, S.currentMag.issue].filter(Boolean).join(' - ') + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 4000);
+  } catch {
+    toast('Download failed');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// True Fullscreen API isn't available for arbitrary elements on iPhone
+// Safari (a long-standing WebKit limitation) — pseudo-fullscreen mode
+// hides the side chrome as a fallback so the pages still get more room.
+function exitFullscreen() {
+  if (document.exitFullscreen) return document.exitFullscreen();
+  if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+}
+
+async function toggleFullscreen() {
+  const modal = $('pdfModal');
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    await exitFullscreen();
+    return;
+  }
+  const supported = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+  if (supported) {
+    try {
+      if (modal.requestFullscreen) { await modal.requestFullscreen(); return; }
+      if (modal.webkitRequestFullscreen) { modal.webkitRequestFullscreen(); return; }
+    } catch { /* fall through to pseudo-fullscreen */ }
+  }
+  modal.classList.toggle('pseudo-fullscreen');
+  updateFullscreenIcon();
+}
+
+function updateFullscreenIcon() {
+  const active = !!(document.fullscreenElement || document.webkitFullscreenElement) || $('pdfModal').classList.contains('pseudo-fullscreen');
+  $('pdfFullscreenIcon').innerHTML = active
+    ? '<path d="M9 3v4a1 1 0 0 1-1 1H4m16-5v4a1 1 0 0 1-1 1h-4M9 21v-4a1 1 0 0 0-1-1H4m16 5v-4a1 1 0 0 0-1-1h-4"/>'
+    : '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>';
 }
 
 /* ── COMMENTS ────────────────────────────────────────────── */
@@ -667,6 +828,20 @@ function init() {
   // PDF viewer — zoom
   $('pdfZoomIn').addEventListener('click',  () => adjustZoom(+0.1));
   $('pdfZoomOut').addEventListener('click', () => adjustZoom(-0.1));
+
+  // PDF viewer — download & fullscreen
+  $('pdfDownloadBtn').addEventListener('click', downloadPdf);
+  $('pdfFullscreenBtn').addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', updateFullscreenIcon);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+
+  // Re-render pages to fit on orientation change / window resize
+  let _resizeDebounce;
+  window.addEventListener('resize', () => {
+    if (!S.pdfDoc || !$('pdfModal').classList.contains('open')) return;
+    clearTimeout(_resizeDebounce);
+    _resizeDebounce = setTimeout(() => renderPages(S.pdfZoom), 300);
+  });
 
   // PDF viewer — share
   $('pdfShareBtn').addEventListener('click', () => {
