@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
@@ -30,6 +31,24 @@ const getIP = req =>
   req.socket.remoteAddress ||
   '127.0.0.1';
 
+const getCookie = (req, name) => {
+  const raw = req.headers.cookie || '';
+  const pair = raw.split(';').map(c => c.trim()).find(c => c.startsWith(name + '='));
+  return pair ? decodeURIComponent(pair.slice(name.length + 1)) : null;
+};
+
+const setUserCookie = (req, res, userId) => {
+  const secure = req.secure ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `holix_uid=${userId}; Max-Age=${60 * 60 * 24 * 365}; Path=/; HttpOnly; SameSite=Lax${secure}`);
+};
+
+// Recognize the current user: this device's cookie first, falling back to IP
+// (a past member returning on the same network without their cookie).
+const findUser = (req, users) => {
+  const cookieId = getCookie(req, 'holix_uid');
+  return (cookieId && users.find(u => u.id === cookieId)) || users.find(u => u.ip === getIP(req)) || null;
+};
+
 // Multer – separate destinations for covers vs pdfs
 const storage = multer.diskStorage({
   destination: (req, file, cb) =>
@@ -52,30 +71,30 @@ const upload = multer({
 // ── USER ROUTES ──────────────────────────────────────────────
 
 app.get('/api/me', (req, res) => {
-  const ip = getIP(req);
   const users = readJSON('data/users.json');
-  const user = users.find(u => u.ip === ip);
+  const user = findUser(req, users);
+  if (user) setUserCookie(req, res, user.id);
   res.json(user ? { found: true, user } : { found: false });
 });
 
 app.post('/api/register', (req, res) => {
   const { name } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
-  const ip = getIP(req);
   const users = readJSON('data/users.json');
-  const existing = users.find(u => u.ip === ip);
-  if (existing) return res.json({ user: existing });
-  const user = { id: uuidv4(), name: name.trim(), ip, favorites: [], joinedAt: new Date().toISOString() };
+  const existing = findUser(req, users);
+  if (existing) { setUserCookie(req, res, existing.id); return res.json({ user: existing }); }
+  const user = { id: uuidv4(), name: name.trim(), ip: getIP(req), favorites: [], joinedAt: new Date().toISOString() };
   users.push(user);
   writeJSON('data/users.json', users);
+  setUserCookie(req, res, user.id);
   res.json({ user });
 });
 
 app.post('/api/favorites/:id', (req, res) => {
-  const ip = getIP(req);
   const users = readJSON('data/users.json');
-  const idx = users.findIndex(u => u.ip === ip);
-  if (idx === -1) return res.status(401).json({ error: 'Not registered' });
+  const user = findUser(req, users);
+  if (!user) return res.status(401).json({ error: 'Not registered' });
+  const idx = users.findIndex(u => u.id === user.id);
   const favs = users[idx].favorites;
   const pos = favs.indexOf(req.params.id);
   pos === -1 ? favs.push(req.params.id) : favs.splice(pos, 1);
@@ -115,8 +134,7 @@ app.get('/api/comments/:magazineId', (req, res) => {
 });
 
 app.post('/api/comments', (req, res) => {
-  const ip = getIP(req);
-  const user = readJSON('data/users.json').find(u => u.ip === ip);
+  const user = findUser(req, readJSON('data/users.json'));
   if (!user) return res.status(401).json({ error: 'Please register first' });
   const { magazineId, text } = req.body;
   if (!text?.trim()) return res.status(400).json({ error: 'Comment text required' });
