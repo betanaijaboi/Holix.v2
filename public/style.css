@@ -373,8 +373,6 @@ body {
   line-height: 1;
   letter-spacing: -2px;
 }
-.card-meta { display:flex; align-items:center; margin-top:8px; }
-.card-views { font-size: 11px; color: var(--gray); display:flex; align-items:center; gap:4px; }
 
 /* Empty state */
 .empty-state {
