@@ -379,6 +379,11 @@ app.get('/api/admin/analytics', adminOnly, async (req, res) => {
   });
 });
 
+// ── 404 ──────────────────────────────────────────────────────
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
+
 app.listen(PORT, () =>
-  console.log(`\n🌐  HOLIX Magazine running at http://localhost:${PORT}\n   Admin password: ${ADMIN_PASS}\n`)
+  console.log(`\n🌐  HOLIX Magazine running at http://localhost:${PORT}\n`)
 );

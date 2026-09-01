@@ -1,0 +1,15 @@
+# HOLIX Magazine
+
+> A digital library of original magazine issues, read online for free.
+
+HOLIX Magazine publishes its own original magazine issues as PDFs, readable directly in the browser. Visitors register with just a name (no password) to read and comment on issues. Content is Holix's own original publication, not user-submitted.
+
+## Legal
+- Terms of Service: /terms.html
+- Privacy Policy: /privacy.html
+
+## Stack
+Node/Express server, static HTML/CSS/JS frontend, Supabase (database), pdf.js for in-browser PDF rendering.
+
+## Links
+- Live site: https://holix-magazine.onrender.com/
