@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { createClient } = require('@supabase/supabase-js');
 const ws = require('ws');
@@ -245,11 +246,21 @@ app.post('/api/comments', async (req, res) => {
 
 // ── ADMIN ROUTES ─────────────────────────────────────────────
 
-const ADMIN_PASS = process.env.ADMIN_PASSWORD || 'holix2026';
+// The built-in fallback is for local runs only; a deployed instance (Render
+// sets RENDER) must configure ADMIN_PASSWORD or admin login stays disabled.
+const ADMIN_PASS = process.env.ADMIN_PASSWORD || (process.env.RENDER ? null : 'holix2026');
+
+// Admin tokens are "<issuedAt>.<hmac>", signed with a key derived from the
+// admin password, so they can't be forged without it and stop working when
+// the password changes. They expire after ADMIN_TOKEN_TTL_MS.
+const ADMIN_TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
+const signAdmin = (issuedAt) =>
+  crypto.createHmac('sha256', 'holix-admin:' + ADMIN_PASS).update(String(issuedAt)).digest('hex');
 
 app.post('/api/admin/login', (req, res) => {
-  if (req.body.password === ADMIN_PASS) {
-    res.json({ token: Buffer.from('admin:' + Date.now()).toString('base64') });
+  if (ADMIN_PASS && req.body.password === ADMIN_PASS) {
+    const issuedAt = Date.now();
+    res.json({ token: `${issuedAt}.${signAdmin(issuedAt)}` });
   } else {
     res.status(401).json({ error: 'Wrong password' });
   }
@@ -258,10 +269,13 @@ app.post('/api/admin/login', (req, res) => {
 const adminOnly = (req, res, next) => {
   const t = req.headers['x-admin-token'];
   if (!t) return res.status(401).json({ error: 'Unauthorized' });
-  try {
-    if (!Buffer.from(t, 'base64').toString().startsWith('admin:')) throw 0;
-    next();
-  } catch { res.status(401).json({ error: 'Invalid token' }); }
+  const [issuedAt, sig] = String(t).split('.');
+  const expected = signAdmin(issuedAt);
+  const valid = ADMIN_PASS && sig && sig.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected)) &&
+    Date.now() - Number(issuedAt) < ADMIN_TOKEN_TTL_MS;
+  if (!valid) return res.status(401).json({ error: 'Invalid token' });
+  next();
 };
 
 app.post('/api/admin/upload', adminOnly,
